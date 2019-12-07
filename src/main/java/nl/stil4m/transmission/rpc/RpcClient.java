@@ -45,6 +45,8 @@ public class RpcClient {
         } catch (InvalidResponseStatus e) {
             LOGGER.trace("Failed execute command. Now setup and try again", e);
             setup();
+            // add new headers potentially created by setup to h
+            h.putAll(headers);
             try {
                 executeCommandInner(command, h);
             } catch (Exception | RequestExecutorException | InvalidResponseStatus inner) {
@@ -54,8 +56,8 @@ public class RpcClient {
     }
 
     private <T, V> void executeCommandInner(RpcCommand<T, V> command, Map<String, String> h) throws RequestExecutorException, InvalidResponseStatus, IOException, RpcException {
+        requestExecutor.removeAllHeaders();
         for (Map.Entry<String, String> entry : h.entrySet()) {
-            requestExecutor.removeAllHeaders();
             requestExecutor.configureHeader(entry.getKey(), entry.getValue());
         }
 
@@ -89,15 +91,21 @@ public class RpcClient {
     protected HttpPost createPost() {
         final HttpPost httpPost = new HttpPost(configuration.getHost());
 
+        ensureAuthentication();
+        headers.forEach(httpPost::setHeader);
+
+        return httpPost;
+    }
+
+    protected void ensureAuthentication()
+    {
         String username = configuration.getUsername();
         String password = configuration.getPassword();
-
         if(username != null && password != null) {
             String plaintext = String.format("%s:%s", username, password);
             String encoded = Base64.getEncoder().encodeToString(plaintext.getBytes());
-            httpPost.setHeader("Authorization", String.format("Basic %s", encoded));
+            headers.put("Authorization",String.format("Basic %s", encoded));
         }
-        return httpPost;
     }
 
     protected DefaultHttpClient getClient() {
