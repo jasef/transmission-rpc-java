@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -86,7 +87,17 @@ public class RpcClient {
     }
 
     protected HttpPost createPost() {
-        return new HttpPost(configuration.getHost());
+        final HttpPost httpPost = new HttpPost(configuration.getHost());
+
+        String username = configuration.getUsername();
+        String password = configuration.getPassword();
+
+        if(username != null && password != null) {
+            String plaintext = String.format("%s:%s", username, password);
+            String encoded = Base64.getEncoder().encodeToString(plaintext.getBytes());
+            httpPost.setHeader("Authorization", String.format("Basic %s", encoded));
+        }
+        return httpPost;
     }
 
     protected DefaultHttpClient getClient() {

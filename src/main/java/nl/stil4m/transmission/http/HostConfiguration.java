@@ -6,4 +6,8 @@ public interface HostConfiguration {
 
     URI getHost();
 
+    String getUsername();
+
+    String getPassword();
+
 }
